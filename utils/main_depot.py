@@ -91,7 +91,7 @@ def rformat(request):
         f_r['ends'] = [len(f_r['lat'])] * f_r['vehicles']
 
     # obtaining cost matrix
-    f_r['cost_matrix'] = matrix.haversine(request)
+    f_r['cost_matrix'] = matrix.billions(request)
     return f_r
 
 
