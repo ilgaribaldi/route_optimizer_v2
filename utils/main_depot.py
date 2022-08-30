@@ -5,7 +5,7 @@ from ortools.constraint_solver import routing_enums_pb2
 
 
 # main depot request verification
-def verify(req):
+def verify_md(req):
     n_deliveries = len(req['parcels'])
     parcel_id = []
     for parcel in req['parcels']:
@@ -34,7 +34,7 @@ def verify(req):
 
 
 # main depot request setup
-def rformat(request):
+def format_md(request):
     f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'parcel_id': []}
 
     # Client data
@@ -96,7 +96,7 @@ def rformat(request):
 
 
 # solve main depot request
-def solve(f_req):
+def solve_md(f_req):
     # Format cost matrix
     C = f_req['cost_matrix']
     C = np.array(C) / 100
@@ -229,7 +229,7 @@ def solve(f_req):
 
 
 # get main depot response
-def get_response(f_req, sol):
+def get_md_response(f_req, sol):
     rsp = {'status': 'OK', 'routes': []}  # Creating response dictionary
     for route_number, route in enumerate(sol):
         rt = []

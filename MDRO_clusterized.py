@@ -1,8 +1,8 @@
 from utils import main_depot as md
 from utils import generate
-import clusterize as clu
-import MDRO as mdr
 from utils import plot
+import clusterize as clu
+import MDRO as mdro
 import concurrent.futures
 import time
 import pprint as pp
@@ -10,9 +10,9 @@ import pprint as pp
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    request = generate.md_request(200, 4)
-    if md.verify(request):
-        cluster_response, plt = clu.get_clusters(request)
+    request = generate.md_request(300, 4)
+    if md.verify_md(request):
+        cluster_response, plt = clu.clusterize(request)
 
         multi_requests = []
         for cluster in cluster_response['clusters']:
@@ -52,12 +52,12 @@ if __name__ == "__main__":
             multi_requests.append(request)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = [executor.submit(mdr.get_response, req) for req in multi_requests]
+            results = [executor.submit(mdro.get_response, req) for req in multi_requests]
             for f in concurrent.futures.as_completed(results):
                 plt = plot.response(f.result())
         plt.show()
     else:
-        response = md.verify(request)
+        response = md.verify_md(request)
 
     finish = time.perf_counter()
     print(f'Finished in {round(finish-start, 2)} second(s)')

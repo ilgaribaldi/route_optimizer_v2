@@ -35,7 +35,6 @@ def billions(request):
         data_type = 'duration'
     else:
         data_type = 'distance'
-    print(data_type)
 
     # Generate origin and destination strings for request
     origins = str(request['lat']) + "," + str(request['lng'])

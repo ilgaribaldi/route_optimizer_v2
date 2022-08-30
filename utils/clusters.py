@@ -2,7 +2,7 @@ from k_means_constrained import KMeansConstrained
 
 
 # get clusters
-def clusterize(f_req, cluster_number):
+def get_clusters(f_req, cluster_number):
     data = list(zip(f_req['lat'][1:], f_req['lng'][1:]))
     clf = KMeansConstrained(
         n_clusters=cluster_number,
@@ -16,7 +16,7 @@ def clusterize(f_req, cluster_number):
 
 
 # get cluster response
-def get_response(f_req, req_clusters):
+def get_cluster_response(f_req, req_clusters):
     cls = {'Status': 'OK', 'clusters': 0}
     n_clusters = req_clusters.max() + 1
     c = {}

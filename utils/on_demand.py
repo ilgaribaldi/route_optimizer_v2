@@ -6,7 +6,7 @@ import math
 
 
 # on demand request verification
-def verify(req):
+def verify_od(req):
     n_deliveries = len(req['parcels'])
     rsp = 1
 
@@ -23,7 +23,7 @@ def verify(req):
 
 
 # on demand request setup
-def rformat(request):
+def format_od(request):
     f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'parcel_id': []}
 
     # Client data
@@ -65,7 +65,7 @@ def rformat(request):
 
 
 # solve on demand request
-def solve(f_req):
+def solve_od(f_req):
     # Define max time per route
     if f_req['api'] == 'google':
         max_time = 1800
@@ -225,7 +225,7 @@ def solve(f_req):
 
 
 # get on demand response
-def get_response(f_req, sol):
+def get_od_response(f_req, sol):
     if sol is not None:
         rsp = {'status': 'OK', 'routes': []}  # Creating response dictionary
         for route_number, route in enumerate(sol):
