@@ -52,7 +52,7 @@ if __name__ == "__main__":
             multi_requests.append(request)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = [executor.submit(mdro.get_response, req) for req in multi_requests]
+            results = [executor.submit(mdro.get_main_depot_response, req) for req in multi_requests]
             for f in concurrent.futures.as_completed(results):
                 plt = plot.response(f.result())
         plt.show()

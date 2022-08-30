@@ -3,7 +3,7 @@ from utils import generate
 from utils import plot
 
 
-def get_response(req):
+def get_on_demand_response(req):
     if od.verify_od(req) == 1:
         f_request = od.format_od(req)
         solution = od.solve_od(f_request)
@@ -28,5 +28,5 @@ if __name__ == "__main__":
     request = generate.od_request(10)
 
     # get response
-    response = get_response(request)
+    response = get_on_demand_response(request)
 

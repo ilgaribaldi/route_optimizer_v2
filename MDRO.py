@@ -3,7 +3,7 @@ from utils import generate
 from utils import plot
 
 
-def get_response(req):
+def get_main_depot_response(req):
     if md.verify_md(req) == 1:
         f_request = md.format_md(req)
         solution = md.solve_md(f_request)
@@ -23,6 +23,6 @@ if __name__ == "__main__":
     request = generate.md_request(100, 4)
 
     # get response
-    response = get_response(request)
+    response = get_main_depot_response(request)
 
     
