@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
+import pprint as pp
 
 
 # get solution plot
@@ -47,20 +48,23 @@ def response(rsp):
     client_lat = float(rsp['routes'][0][0]['address']['location']['coordinates'][0])
     client_lng = float(rsp['routes'][0][0]['address']['location']['coordinates'][1])
     plt.scatter(x=client_lng, y=client_lat, c='k', marker='^', s=200)
-
     for route in rsp['routes']:
         lat = [float(i['address']['location']['coordinates'][0]) for i in route if 'address' in i]
         lng = [float(i['address']['location']['coordinates'][1]) for i in route if 'address' in i]
         ids = []
-        for idx, parcel in enumerate(route):
+
+        for idx, location in enumerate(route):
             if idx > 0:
-                ids.append(parcel['drops'][0])
+                if 'drops' in location.keys() and location['drops']:
+                    ids.append(location['drops'][0])
+                else:
+                    ids.append("")
 
         plt.scatter(np.array(lng[1:]), np.array(lat[1:]))
         plt.plot(np.array(lng), np.array(lat))
 
         for idx, lt in enumerate(lat):
-            if idx > 0:
+            if 0 < idx:
                 plt.annotate(ids[idx-1], xy=(lng[idx], lat[idx] + 0.00001))
 
         lat0 = np.array(lat[0:-1])
@@ -74,7 +78,6 @@ def response(rsp):
         for LAT, LNG, dLAT, dLNG in zip(lat_pos, lng_pos, lat_dir, lng_dir):
             plt.annotate("", xytext=(LNG, LAT), xy=(LNG + 0.001 * dLNG, LAT + 0.001 * dLAT),
                          arrowprops=dict(arrowstyle="->", color='k'), size=8)
-
     return plt
 
 

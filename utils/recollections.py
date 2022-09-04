@@ -6,54 +6,51 @@ import math
 
 
 # on demand request verification
-def verify_od(req):
-    n_deliveries = len(req['parcels'])
+def verify_rec(req):
+    n_locations = len(req['clients'])
     rsp = 1
-
-    if n_deliveries > 50:
-        rsp = {'status': "INVALID REQUEST: too many packages for optimizer"}
 
     if req['api'] != 'google' and req['api'] != 'billions':
         rsp = {'status': "INVALID REQUEST: invalid API"}
 
-    if req['api'] == 'google' and n_deliveries > 25:
+    if req['api'] == 'google' and n_locations > 25:
         rsp = {'status': "INVALID REQUEST: too many packages for google API, use billions API instead"}
 
     return rsp
 
 
 # on demand request setup
-def format_od(request):
-    f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'parcel_id': []}
+def format_rec(request):
+    f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'client_id': []}
 
-    # Client data
+    # Depot data
     f_r['lat'].append(request['lat'])
     f_r['lng'].append(request['lng'])
     f_r['address'].append(request['address'])
     f_r['contact'].append(request['contact'])
 
-    # Parcel data
-    for parcel in request['parcels']:
-        f_r['lat'].append(parcel['lat'])
-        f_r['lng'].append(parcel['lng'])
-        f_r['address'].append(parcel['address'])
-        f_r['contact'].append(parcel['contact'])
-        f_r['parcel_id'].append(parcel['id'])
+    # Clients data
+    for client in request['clients']:
+        f_r['lat'].append(client['lat'])
+        f_r['lng'].append(client['lng'])
+        f_r['address'].append(client['address'])
+        f_r['contact'].append(client['contact'])
+        f_r['client_id'].append(client['id'])
 
     # Additional data
-    f_r['n_deliveries'] = len(request['parcels'])
+    f_r['n_locations'] = len(request['clients'])
     f_r['api'] = request['api']
 
     # Defining search strategies
-    if f_r['n_deliveries'] <= 25:  # 10 seconds
+    if f_r['n_locations'] <= 25:  # 10 seconds
         f_r['time'] = 3
         f_r['search_strategies'] = 3
-    elif f_r['n_deliveries'] <= 50:  # 15 seconds
+    elif f_r['n_locations'] <= 50:  # 15 seconds
         f_r['time'] = 3
         f_r['search_strategies'] = 3
 
     # Defining location demands
-    f_r['demands'] = [0] + [1] * f_r['n_deliveries'] + [0]
+    f_r['demands'] = [0] + [1] * f_r['n_locations'] + [0]
 
     # obtaining cost matrix
     if request['api'] == 'google':
@@ -64,19 +61,19 @@ def format_od(request):
 
 
 # solve on demand request
-def solve_od(f_req):
+def solve_rec(f_req):
     # Define max time per route
     if f_req['api'] == 'google':
-        max_time = 1800
+        max_time = 3000
     else:
-        max_time = 1720
+        max_time = 2500
 
     # Define cost matrix
     C = f_req['cost_matrix']
 
     # Define initial attempt and vehicle number
     attempt = 0
-    vehicles = math.ceil(f_req['n_deliveries'] / 4)
+    vehicles = math.ceil(f_req['n_locations'] / 20)
 
     # Create lists to store solution
     final_times = []
@@ -89,9 +86,9 @@ def solve_od(f_req):
             vehicles += 1
 
         attempt += 1
-        capacities = [4] * vehicles
-        starts = [0] * vehicles
-        ends = [len(f_req['lat'])] * vehicles
+        capacities = [20] * vehicles
+        starts = [len(f_req['lat'])] * vehicles
+        ends = [0] * vehicles
 
         # Create the routing index manager.
         manager = pywrapcp.RoutingIndexManager(len(C),
@@ -190,8 +187,9 @@ def solve_od(f_req):
                         end_node = manager.IndexToNode(index)
                         rts[vehicle_id] = np.append(rts[vehicle_id], end_node)
                         previous_index = index
+
                     # Deleting dummy nodes
-                    rts[vehicle_id] = np.delete(rts[vehicle_id], np.where(rts[vehicle_id] == f_req['n_deliveries'] + 1))
+                    rts[vehicle_id] = np.delete(rts[vehicle_id], 0)
 
             # Calculate route times and total time
             total_time = 0  # Initializing total distance
@@ -222,7 +220,7 @@ def solve_od(f_req):
 
 
 # get on demand response
-def get_od_response(f_req, sol):
+def get_rec_response(f_req, sol):
     if sol is not None:
         rsp = {'status': 'OK', 'routes': []}  # Creating response dictionary
         for route_number, route in enumerate(sol):
@@ -241,11 +239,11 @@ def get_od_response(f_req, sol):
                     if node == 0 and idx != len(route) - 1:  # if satisfied, node represents client
                         for other_node in route:
                             if other_node > 0:
-                                picks.append(f_req['parcel_id'][other_node - 1])
+                                picks.append(f_req['client_id'][other_node - 1])
                     elif node == 0 and idx == len(route) - 1:  # if satisfied, node represents client endpoint
                         pass
                     else:
-                        drops.append(f_req['parcel_id'][node - 1])
+                        drops.append(f_req['client_id'][node - 1])
                     node_info = {'address': address,
                                  'contact': contact,
                                  'picks': picks,
@@ -256,5 +254,3 @@ def get_od_response(f_req, sol):
     else:
         rsp = {'status': "Error: No solution found for all routes under 30 minutes"}
     return rsp
-
-

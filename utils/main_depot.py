@@ -56,7 +56,7 @@ def format_md(request):
     f_r['vehicles'] = request['vehicles']
 
     if f_r['n_deliveries'] <= 25:  # 10 seconds
-        f_r['time'] = 0
+        f_r['time'] = 3
         f_r['search_strategies'] = 5
     elif f_r['n_deliveries'] <= 50:  # 15 seconds
         f_r['time'] = 3

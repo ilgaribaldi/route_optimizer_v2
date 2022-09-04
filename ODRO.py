@@ -1,6 +1,10 @@
 from utils import on_demand as od
+
+""" optional """
 from utils import generate
 from utils import plot
+import pprint as pp
+from data import request_examples as re
 
 
 def get_on_demand_response(req):
@@ -9,15 +13,6 @@ def get_on_demand_response(req):
         solution = od.solve_od(f_request)
         rsp = od.get_od_response(f_request, solution)
 
-        """ optional """
-        """
-        try:
-            # plt = plot.solution(f_request, solution)
-            # plt.show()
-        except NameError:
-            # print('plot not available')
-        """
-
     else:
         rsp = od.verify_od(request)
     return rsp
@@ -25,8 +20,14 @@ def get_on_demand_response(req):
 
 if __name__ == "__main__":
     # define request
-    request = generate.od_request(10)
+    request = re.req3
 
     # get response
     response = get_on_demand_response(request)
+    pp.pprint(response)
+
+    """ optional """
+    # pp.pprint(response)
+    # plt = plot.response(response)
+    # plt.show()
 

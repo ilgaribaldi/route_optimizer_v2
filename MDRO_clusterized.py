@@ -10,7 +10,7 @@ import pprint as pp
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    request = generate.md_request(300, 4)
+    request = generate.md_request(300, 3)
     if md.verify_md(request):
         cluster_response, plt = clu.clusterize(request)
 

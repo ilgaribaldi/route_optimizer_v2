@@ -10,9 +10,14 @@ def haversine(request):
     lat.append(request['lat'])
     lng.append(request['lng'])
 
-    for package in request['parcels']:
-        lat.append(package['lat'])
-        lng.append(package['lng'])
+    if 'parcels' in request.keys():
+        locations = request['parcels']
+    else:
+        locations = request['clients']
+
+    for obj in locations:
+        lat.append(obj['lat'])
+        lng.append(obj['lng'])
 
     lat_lng = list(zip(lat, lng))
 
@@ -31,17 +36,22 @@ def haversine(request):
 # NextBillion API cost-matrix
 def billions(request):
     # Define data type
-    if len(request) == 6:
-        data_type = 'duration'
-    else:
+    if 'vehicles' in request.keys():
         data_type = 'distance'
+    else:
+        data_type = 'duration'
+
+    if 'parcels' in request.keys():
+        locations = request['parcels']
+    else:
+        locations = request['clients']
 
     # Generate origin and destination strings for request
     origins = str(request['lat']) + "," + str(request['lng'])
     destinations = str(request['lat']) + "," + str(request['lng'])
-    for idx, parc in enumerate(request['parcels']):
-        origins += "|" + str(parc['lat']) + "," + str(parc['lng'])
-        destinations += "|" + str(parc['lat']) + "," + str(parc['lng'])
+    for idx, obj in enumerate(locations):
+        origins += "|" + str(obj['lat']) + "," + str(obj['lng'])
+        destinations += "|" + str(obj['lat']) + "," + str(obj['lng'])
 
     api_key = "BILLIONS_API_KEY"
     begin = "https://api.nextbillion.io/distancematrix/json?origins="
@@ -70,15 +80,19 @@ def google(request):
     else:
         data_type = 'duration'
 
+    if 'parcels' in request.keys():
+        locations = request['parcels']
+    else:
+        locations = request['clients']
+
     # Generate origin and destination strings for request
     origin = str(request['lat']) + " " + str(request['lng'])
-    destinations = str(request['parcels'][0]['lat']) + " " + str(
-        request['parcels'][0]['lng'])
+    destinations = str(locations[0]['lat']) + " " + str(locations[0]['lng'])
     C = []
 
-    for idx, parc in enumerate(request['parcels']):
+    for idx, obj in enumerate(locations):
         if idx > 0:
-            destinations += "|" + str(parc['lat']) + " " + str(parc['lng'])
+            destinations += "|" + str(obj['lat']) + " " + str(obj['lng'])
 
     api_key = "GOOGLE_API_KEY"
     start = "https://maps.googleapis.com/maps/api/distancematrix/json?origins="
@@ -95,14 +109,14 @@ def google(request):
         row.append(0)
         C.append(row)
 
-    for idx1, start_node in enumerate(request['parcels']):
+    for idx1, start_node in enumerate(locations):
         origin = str(start_node['lat']) + " " + str(start_node['lng'])
         destinations = str(request['lat']) + " " + str(request['lng'])
-        for idx2, parc in enumerate(request['parcels']):
+        for idx2, obj in enumerate(locations):
             if idx1 == idx2:
                 pass
             else:
-                destinations += "|" + str(parc['lat']) + " " + str(parc['lng'])
+                destinations += "|" + str(obj['lat']) + " " + str(obj['lng'])
         url = start + origin + end + destinations + mode + api_key
         output = requests.get(url).json()
 

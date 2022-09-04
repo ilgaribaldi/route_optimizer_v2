@@ -1,6 +1,8 @@
 from utils import main_depot as md
 from utils import generate
+
 from utils import plot
+import pprint as pp
 
 
 def get_main_depot_response(req):
@@ -9,10 +11,6 @@ def get_main_depot_response(req):
         solution = md.solve_md(f_request)
         rsp = md.get_md_response(f_request, solution)
 
-        """ optional """
-        # plt = plot.response(rsp)
-        # plt.show()
-
     else:
         rsp = md.verify_md(req)
     return rsp
@@ -20,9 +18,12 @@ def get_main_depot_response(req):
 
 if __name__ == "__main__":
     # define request
-    request = generate.md_request(100, 4)
+    request = generate.md_request(25, 2, ['depot', 'depot'])
 
     # get response
     response = get_main_depot_response(request)
 
-    
+    """ optional """
+    # pp.pprint(response)
+    # plt = plot.response(response)
+    # plt.show()
