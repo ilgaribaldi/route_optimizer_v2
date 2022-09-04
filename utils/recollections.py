@@ -246,8 +246,8 @@ def get_rec_response(f_req, sol):
                         drops.append(f_req['client_id'][node - 1])
                     node_info = {'address': address,
                                  'contact': contact,
-                                 'picks': picks,
-                                 'drops': drops,
+                                 'picks': [],
+                                 'drops': [],
                                  'time until stop': f'{time} min'}
                     rt.append(node_info)
                 rsp['routes'].append(rt)
