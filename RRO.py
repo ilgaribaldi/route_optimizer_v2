@@ -7,7 +7,7 @@ import pprint as pp
 from data import request_examples as re
 
 
-def get_rec_response(req):
+def get_recollections_response(req):
     if rec.verify_rec(req) == 1:
         f_request = rec.format_rec(req)
         solution = rec.solve_rec(f_request)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     request = re.req4
 
     # get response
-    response = get_rec_response(request)
+    response = get_recollections_response(request)
 
     """ optional """
     # pp.pprint(response)
