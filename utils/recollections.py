@@ -5,9 +5,9 @@ from ortools.constraint_solver import routing_enums_pb2
 import math
 
 
-# on demand request verification
+# recollections request verification
 def verify_rec(req):
-    n_locations = len(req['clients'])
+    n_locations = len(req['depots'])
     rsp = 1
 
     if req['api'] != 'google' and req['api'] != 'billions':
@@ -19,9 +19,9 @@ def verify_rec(req):
     return rsp
 
 
-# on demand request setup
+# recollections request setup
 def format_rec(request):
-    f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'client_id': []}
+    f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'depot_id': [], 'parcels': []}
 
     # Depot data
     f_r['lat'].append(request['lat'])
@@ -30,20 +30,21 @@ def format_rec(request):
     f_r['contact'].append(request['contact'])
 
     # Clients data
-    for client in request['clients']:
-        f_r['lat'].append(client['lat'])
-        f_r['lng'].append(client['lng'])
-        f_r['address'].append(client['address'])
-        f_r['contact'].append(client['contact'])
-        f_r['client_id'].append(client['id'])
+    for depot in request['depots']:
+        f_r['lat'].append(depot['lat'])
+        f_r['lng'].append(depot['lng'])
+        f_r['address'].append(depot['address'])
+        f_r['contact'].append(depot['contact'])
+        f_r['depot_id'].append(depot['id'])
+        f_r['parcels'].append(depot['parcels'])
 
     # Additional data
-    f_r['n_locations'] = len(request['clients'])
+    f_r['n_locations'] = len(request['depots'])
     f_r['api'] = request['api']
 
     # Defining search strategies
     if f_r['n_locations'] <= 25:  # 10 seconds
-        f_r['time'] = 3
+        f_r['time'] = 0
         f_r['search_strategies'] = 3
     elif f_r['n_locations'] <= 50:  # 15 seconds
         f_r['time'] = 3
@@ -57,10 +58,11 @@ def format_rec(request):
         f_r['cost_matrix'] = matrix.google(request)
     elif request['api'] == 'billions':
         f_r['cost_matrix'] = matrix.billions(request)
+
     return f_r
 
 
-# solve on demand request
+# solve recollections request
 def solve_rec(f_req):
     # Define max time per route
     if f_req['api'] == 'google':
@@ -219,7 +221,7 @@ def solve_rec(f_req):
         return None
 
 
-# get on demand response
+# get recollections response
 def get_rec_response(f_req, sol):
     if sol is not None:
         rsp = {'status': 'OK', 'routes': []}  # Creating response dictionary
@@ -234,21 +236,21 @@ def get_rec_response(f_req, sol):
                     if idx == 0:
                         time = 0
                     else:
-                        seconds = f_req['cost_matrix'][route[idx-1]][route[idx]]
+                        seconds = f_req['cost_matrix'][route[idx - 1]][route[idx]]
                         time = round(seconds / 60, 2)
-                    if node == 0 and idx != len(route) - 1:  # if satisfied, node represents client
+                    if node == 0:  # if satisfied, node represents main depot
                         for other_node in route:
                             if other_node > 0:
-                                picks.append(f_req['client_id'][other_node - 1])
-                    elif node == 0 and idx == len(route) - 1:  # if satisfied, node represents client endpoint
-                        pass
+                                drops += f_req['parcels'][other_node - 1]
                     else:
-                        drops.append(f_req['client_id'][node - 1])
+                        picks = f_req['parcels'][node - 1]
+
                     node_info = {'address': address,
                                  'contact': contact,
-                                 'picks': [],
-                                 'drops': [],
+                                 'picks': picks,
+                                 'drops': drops,
                                  'time until stop': f'{time} min'}
+
                     rt.append(node_info)
                 rsp['routes'].append(rt)
     else:

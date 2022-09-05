@@ -13,7 +13,7 @@ def haversine(request):
     if 'parcels' in request.keys():
         locations = request['parcels']
     else:
-        locations = request['clients']
+        locations = request['depots']
 
     for obj in locations:
         lat.append(obj['lat'])
@@ -44,7 +44,7 @@ def billions(request):
     if 'parcels' in request.keys():
         locations = request['parcels']
     else:
-        locations = request['clients']
+        locations = request['depots']
 
     # Generate origin and destination strings for request
     origins = str(request['lat']) + "," + str(request['lng'])
@@ -75,7 +75,7 @@ def billions(request):
 # Google API cost-matrix
 def google(request):
     # Define data type
-    if request['vehicles']:
+    if 'vehicles' in request.keys():
         data_type = 'distance'
     else:
         data_type = 'duration'
@@ -83,7 +83,7 @@ def google(request):
     if 'parcels' in request.keys():
         locations = request['parcels']
     else:
-        locations = request['clients']
+        locations = request['depots']
 
     # Generate origin and destination strings for request
     origin = str(request['lat']) + " " + str(request['lng'])
