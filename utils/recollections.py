@@ -44,7 +44,7 @@ def format_rec(request):
 
     # Defining search strategies
     if f_r['n_locations'] <= 25:  # 10 seconds
-        f_r['time'] = 0
+        f_r['time'] = 3
         f_r['search_strategies'] = 3
     elif f_r['n_locations'] <= 50:  # 15 seconds
         f_r['time'] = 3

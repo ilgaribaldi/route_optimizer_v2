@@ -2,7 +2,7 @@ from utils import main_depot as md
 from utils import generate
 from utils import plot
 import clusterize as clu
-import MDRO as mdro
+import main_depot_optimizer as mdro
 import concurrent.futures
 import time
 import pprint as pp
