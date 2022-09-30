@@ -36,7 +36,8 @@ def md_request(deliveries, vehicles, end_locations=None):
                     "-100.2791"
                 ]
             }
-        }
+        },
+        "billions_API": False
     }
     parcels = []
     for idx in range(deliveries):

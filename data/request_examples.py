@@ -5,6 +5,7 @@ req1 = {
     "capacities": 28,
     "lat": 25.7327,
     "lng": -100.2791,
+    'billions_API': True,
     "contact": {
                 "name": "MAIN DEPOT",
                 "phones": [
