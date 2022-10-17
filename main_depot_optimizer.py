@@ -18,12 +18,12 @@ def get_main_depot_response(req):
 
 if __name__ == "__main__":
     # define request
-    request = generate.md_request(30, 2)
+    request = generate.md_request(10, 1)
 
     # get response
     response = get_main_depot_response(request)
 
     """ optional """
-    # pp.pprint(response)
-    # plt = plot.response(response)
-    # plt.show()
+    pp.pprint(response)
+    plt = plot.response(response)
+    plt.show()
