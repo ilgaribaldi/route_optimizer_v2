@@ -90,7 +90,7 @@ def format_md(request):
     else:
         f_r['ends'] = [len(f_r['lat'])] * f_r['vehicles']
 
-    # obtaining cost matrix
+    # Obtaining cost matrix
     if request['billions_API'] == 1:
         f_r['cost_matrix'] = matrix.billions(request)
     elif request['billions_API'] == 0:
