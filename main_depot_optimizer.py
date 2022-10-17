@@ -18,7 +18,7 @@ def get_main_depot_response(req):
 
 if __name__ == "__main__":
     # define request
-    request = generate.md_request(11, 1)
+    request = generate.md_request(12, 1)
 
     # get response
     response = get_main_depot_response(request)
