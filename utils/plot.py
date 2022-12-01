@@ -36,7 +36,53 @@ def solution(f_req, sol):
         for LAT, LNG, dLAT, dLNG in zip(lat_pos, lng_pos, lat_dir, lng_dir):
             plt.annotate("", xytext=(LNG, LAT), xy=(LNG + 0.001 * dLNG, LAT + 0.001 * dLAT),
                          arrowprops=dict(arrowstyle="->", color='k'), size=8)
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
     return plt
+
+
+# get multi-depot solution plot
+def mud_solution(f_req, sol):
+    # Plotting client nodes and their corresponding deliveries
+    clients = list(range(1, len(f_req['client_lat']) + 1))
+    plt.scatter(x=f_req['deliveries_lng'], y=f_req['deliveries_lat'],
+                c=f_req['client_number'], cmap='viridis', s=50)
+    plt.scatter(x=f_req['client_lng'], y=f_req['client_lat'],
+                c=clients, cmap='viridis', marker='^', s=200)
+
+    # Annotating nodes and plotting routes
+    for vehicle_id in range(len(sol)):
+        route_lat = []
+        route_lng = []
+        for node in sol[vehicle_id]:
+            if node > 0:
+                plt.annotate(str(node),
+                             xy=(f_req['deliveries_lng'][node - 1], f_req['deliveries_lat'][node - 1] + 0.00001))
+                route_lat.append(f_req['deliveries_lat'][node - 1])
+                route_lng.append(f_req['deliveries_lng'][node - 1])
+            else:
+                plt.annotate(str([-node]),
+                             xy=(f_req['client_lng'][-node - 1], f_req['client_lat'][-node - 1] + 0.00001))
+                route_lat.append(f_req['client_lat'][-node - 1])
+                route_lng.append(f_req['client_lng'][-node - 1])
+        plt.plot(route_lng, route_lat)
+
+        # Plotting directional arrows
+        lat0 = np.array(route_lat[0:-1])
+        lat1 = np.array(route_lat[1:])
+        lng0 = np.array(route_lng[0:-1])
+        lng1 = np.array(route_lng[1:])
+        lat_pos = (lat0 + lat1) / 2
+        lng_pos = (lng0 + lng1) / 2
+        lat_dir = lat1 - lat0
+        lng_dir = lng1 - lng0
+        for LAT, LNG, dLAT, dLNG in zip(lat_pos, lng_pos, lat_dir, lng_dir):
+            plt.annotate("", xytext=(LNG, LAT), xy=(LNG + 0.001 * dLNG, LAT + 0.001 * dLAT),
+                         arrowprops=dict(arrowstyle="->", color='k'), size=8)
+
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
+    plt.show()
 
 
 # get response plot
@@ -52,6 +98,7 @@ def response(rsp):
         lat = [float(i['address']['location']['coordinates'][0]) for i in route if 'address' in i]
         lng = [float(i['address']['location']['coordinates'][1]) for i in route if 'address' in i]
         ids = []
+        volumes = []
 
         for idx, location in enumerate(route):
             if idx > 0:
@@ -65,7 +112,7 @@ def response(rsp):
 
         for idx, lt in enumerate(lat):
             if 0 < idx:
-                plt.annotate(ids[idx-1], xy=(lng[idx], lat[idx] + 0.00001))
+                plt.annotate(ids[idx - 1], xy=(lng[idx], lat[idx] + 0.00001))
 
         lat0 = np.array(lat[0:-1])
         lat1 = np.array(lat[1:])
@@ -78,6 +125,8 @@ def response(rsp):
         for LAT, LNG, dLAT, dLNG in zip(lat_pos, lng_pos, lat_dir, lng_dir):
             plt.annotate("", xytext=(LNG, LAT), xy=(LNG + 0.001 * dLNG, LAT + 0.001 * dLAT),
                          arrowprops=dict(arrowstyle="->", color='k'), size=8)
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
     return plt
 
 
@@ -96,3 +145,5 @@ def clusters(f_req, req_clusters):
     # Plotting client location
     plt.scatter(x=f_req['lng'][0], y=f_req['lat'][0], c='k', marker='^', s=200)
     return plt
+
+
