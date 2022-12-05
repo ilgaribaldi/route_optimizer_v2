@@ -20,6 +20,7 @@ if __name__ == "__main__":
     # Define request
     request = re.req7
 
+    # ------- Testing ------- #
     response = get_multi_depot_response(request)
 
     # optional

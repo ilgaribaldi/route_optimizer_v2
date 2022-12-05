@@ -73,6 +73,7 @@ def print_solution(data, manager, routing, solution):
 def choose_search_parameters(time, search_strategy):
 
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.log_search = True
 
     if search_strategy == 1:
         search_parameters.first_solution_strategy = (
@@ -117,6 +118,7 @@ def choose_search_parameters(time, search_strategy):
         search_parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)  # GUIDED_LOCAL_SEARCH
         search_parameters.time_limit.FromSeconds(time)
+        # search_parameters.time_limit.seconds = 5
 
     return search_parameters
 
