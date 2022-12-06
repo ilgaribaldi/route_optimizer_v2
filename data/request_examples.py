@@ -1840,7 +1840,7 @@ req3 = {
             }
         }
     ],
-    'api': 'billions'  # options: 'google', 'billions'
+    "api": "billions"
 }
 
 # R - 10 packages
@@ -1875,7 +1875,7 @@ req4 = {
     "depots": [
         {
             "id": "1",
-            "parcels": ['1.1', '1.2', '1.3'],
+            "parcels": ["1.1", "1.2", "1.3"],
             "lat": 25.7952254181278,
             "lng": -100.249475973778,
             "contact": {
@@ -1906,7 +1906,7 @@ req4 = {
         },
         {
             "id": "2",
-            "parcels": ['2.1', '2.2'],
+            "parcels": ["2.1", "2.2"],
             "lat": 25.7812518794152,
             "lng": -100.298906308739,
             "contact": {
@@ -1937,7 +1937,7 @@ req4 = {
         },
         {
             "id": "3",
-            "parcels": ['3.1', '3.2'],
+            "parcels": ["3.1", "3.2"],
             "lat": 25.7651932279431,
             "lng": -100.269895102615,
             "contact": {
@@ -1968,7 +1968,7 @@ req4 = {
         },
         {
             "id": "4",
-            "parcels": ['4.1', '4.2'],
+            "parcels": ["4.1", "4.2"],
             "lat": 25.7542400828131,
             "lng": -100.300548879908,
             "contact": {
@@ -1999,7 +1999,7 @@ req4 = {
         },
         {
             "id": "5",
-            "parcels": ['5.1', '5.2'],
+            "parcels": ["5.1", "5.2"],
             "lat": 25.7520449594731,
             "lng": -100.309569402615,
             "contact": {
@@ -2030,7 +2030,7 @@ req4 = {
         },
         {
             "id": "6",
-            "parcels": ['6.1', '6.2'],
+            "parcels": ["6.1", "6.2"],
             "lat": 25.7272,
             "lng": -100.2620,
             "contact": {
@@ -2061,7 +2061,7 @@ req4 = {
         },
         {
             "id": "7",
-            "parcels": ['7.1'],
+            "parcels": ["7.1"],
             "lat": 25.6974,
             "lng": -100.3001,
             "contact": {
@@ -2092,7 +2092,7 @@ req4 = {
         },
         {
             "id": "8",
-            "parcels": ['8.1'],
+            "parcels": ["8.1"],
             "lat": 25.7126,
             "lng": -100.3231,
             "contact": {
@@ -2123,7 +2123,7 @@ req4 = {
         },
         {
             "id": "9",
-            "parcels": ['9.1'],
+            "parcels": ["9.1"],
             "lat": 25.7210,
             "lng": -100.2026,
             "contact": {
@@ -2154,7 +2154,7 @@ req4 = {
         },
         {
             "id": "10",
-            "parcels": ['10.1', '10.2'],
+            "parcels": ["10.1", "10.2"],
             "lat": 25.6690,
             "lng": -100.2358,
             "contact": {
@@ -2184,7 +2184,7 @@ req4 = {
             }
         }
     ],
-    'api': 'billions'  # options: 'google', 'billions'
+    "api": "billions"
 }
 
 # MD - 24 packages - parallelization
@@ -3134,12 +3134,12 @@ req6 = {
     "available_vehicles": {
         "motorcycles": 3,
         "cars": 3,
-        "vans": 3,
+        "vans": 3
     },
     "end_locations": [],
     "lat": 25.7327,
     "lng": -100.2791,
-    'billions_API': 0,
+    "billions_API": 0,
     "contact": {
         "name": "MAIN DEPOT",
         "phones": [
@@ -7528,8 +7528,8 @@ req8 = {
                     "lng": -100.2929019
                 }
             ]
-        },
-    ],
+        }
+    ]
 }
 
 # Matrix request (Main Depot)
@@ -7537,7 +7537,7 @@ req9 = {
     "lat": 25.7327,
     "lng": -100.2791,
     "end_locations": [],
-    'billions_API': 0,
+    "billions_API": 0,
     "parcels": [
         {
             "id": "1",
@@ -7848,7 +7848,7 @@ req9 = {
                 }
             },
             "volume": 1
-        },
+        }
     ]
 }
 

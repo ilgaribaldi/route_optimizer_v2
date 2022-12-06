@@ -73,7 +73,7 @@ def print_solution(data, manager, routing, solution):
 def choose_search_parameters(time, search_strategy):
 
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.log_search = True
+    search_parameters.log_search = False
 
     if search_strategy == 1:
         search_parameters.first_solution_strategy = (

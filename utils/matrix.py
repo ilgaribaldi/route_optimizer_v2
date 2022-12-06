@@ -115,7 +115,6 @@ def billions(request):
                         for idx, obj in enumerate(request['parcels']):
                             if end_location == obj['id']:
                                 indexes.append(idx + 1)
-    print(indexes)
 
     # Populate matrix with response
     C = []

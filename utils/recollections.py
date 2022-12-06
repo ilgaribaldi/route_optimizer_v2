@@ -224,7 +224,7 @@ def solve_rec(f_req):
 # get recollections response
 def get_rec_response(f_req, sol):
     if sol is not None:
-        rsp = {'status': 'OK', 'routes': []}  # Creating response dictionary
+        rsp = {'status': 200, 'routes': []}  # Creating response dictionary
         for route_number, route in enumerate(sol):
             rt = []
             if len(route) > 1:

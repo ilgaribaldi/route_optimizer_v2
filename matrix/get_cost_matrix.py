@@ -6,7 +6,7 @@ req = {
     "lat": 25.7327,
     "lng": -100.2791,
     "end_locations": [],
-    'billions_API': 0,
+    "billions_API": 0,
     "parcels": [
         {
             "id": "1",
@@ -317,7 +317,7 @@ req = {
                 }
             },
             "volume": 1
-        },
+        }
     ]
 }
 

@@ -2,11 +2,9 @@ from utils import main_depot as md
 from utils import generate
 from utils import plot
 import clusterize as clu
-import main_depot_optimizer as mdro
+from optimizers import main_depot_optimizer as mdro
 import concurrent.futures
 import time
-import pprint as pp
-
 
 if __name__ == "__main__":
     start = time.perf_counter()
