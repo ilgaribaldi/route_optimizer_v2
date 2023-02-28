@@ -1,45 +1,27 @@
-from utils import matrix
 import numpy as np
 from ortools.constraint_solver import pywrapcp
-from ortools.constraint_solver import routing_enums_pb2
 import pprint as pp
 from utils import internal_solution_functions as isf
 
 
 # main depot request verification
 def verify_md(request):
-    n_deliveries = len(request['parcels'])
-    parcel_id = []
-    for parcel in request['parcels']:
-        parcel_id.append(parcel['id'])
     rsp = 1
-
-    # Calculating total vehicle capacity
-    vehicle_capacities = [5, 10, 15]
-    vehicles = [
-        request['available_vehicles']['motorcycles'],
-        request['available_vehicles']['cars'],
-        request['available_vehicles']['vans']
-    ]
-
-    total_possible_capacity = 0
-    for idx, vehicle in enumerate(vehicles):
-        total_possible_capacity += vehicle_capacities[idx] * vehicle
-
-    total_parcel_volume = 0
-    for obj in request['parcels']:
-        total_parcel_volume += obj['volume']
+    n_deliveries = len(request['parcels'])
+    parcel_id = [parcel['id'] for parcel in request['parcels']]
+    total_parcel_volume = sum([obj['volume'] for obj in request['parcels']])
+    total_vehicle_capacity = sum(v['capacity'] for v in request['vehicles'])
 
     # Check if total vehicle capacity is enough for all parcels
-    if total_possible_capacity < total_parcel_volume:
+    if total_vehicle_capacity < total_parcel_volume:
         rsp = {'status': 400}
 
     '''
     # Check if depot_return > vehicle number
-    
+
     if len(request['end_locations']) > request['vehicles']:
         rsp = {'status': 400}
-        
+
     if request['vehicles'] > n_deliveries:
         rsp = {'status': 400}
     '''
@@ -49,134 +31,67 @@ def verify_md(request):
 
     for end_location in request['end_locations']:
         if end_location != 'depot' and end_location not in parcel_id:
-            rsp = {'status': 400}
+            rsp = {'status': 400, 'body': [], 'total_distance': 1000000000,
+                   'search_strategy': request['search_strategy']}
             break
     return rsp
 
 
 # main depot request setup
 def format_md(request):
-    f_r = {'lat': [], 'lng': [], 'address': [], 'contact': [], 'parcel_id': []}
+    f_r = {
+        'lat': [request["depot"]["lat"]] + [parcel['lat'] for parcel in request['parcels']],
+        'lng': [request["depot"]['lng']] + [parcel['lng'] for parcel in request['parcels']],
+        'address': [request["depot"]['address']] + [parcel['address'] for parcel in request['parcels']],
+        'contact': [request["depot"]['contact']] + [parcel['contact'] for parcel in request['parcels']],
+        'parcel_id': [parcel['id'] for parcel in request['parcels']],
+        'n_deliveries': len(request['parcels']),
+        'search_strategy': request['search_strategy'],
+        'cost_matrix': request['cost_matrix'],
+        'routeNumber': request['routeNumber'],
+        'vehicle_ids': [v['id'] for v in request["vehicles"]]
+    }
 
-    # Client data
-    f_r['lat'].append(request['lat'])
-    f_r['lng'].append(request['lng'])
-    f_r['address'].append(request['address'])
-    f_r['contact'].append(request['contact'])
+    print(f_r['vehicle_ids'])
 
-    # Parcel data
-    for parcel in request['parcels']:
-        f_r['lat'].append(parcel['lat'])
-        f_r['lng'].append(parcel['lng'])
-        f_r['address'].append(parcel['address'])
-        f_r['contact'].append(parcel['contact'])
-        f_r['parcel_id'].append(parcel['id'])
+    demands = [obj['volume'] for obj in request['parcels']]
+    vehicle_capacities = [v['capacity'] for v in request["vehicles"]]
+    if request["routeNumber"] == "min":
+        # --------------------- Choose vehicles based on capacity functionality (min) --------------- #
+        vehicles_to_use = isf.find_minimum_vehicles(vehicle_capacities, sum(demands))
+        f_r["capacities"] = vehicles_to_use
+        f_r['vehicles'] = len(vehicles_to_use)
+        f_r['vehicle_ids'] = [vehicle["id"] for vehicle in request['vehicles'] if
+                              vehicle["capacity"] in f_r['capacities']]
+        f_r['vehicle_ids'].sort(
+            key=lambda x: f_r['capacities'].index(next(v for v in request['vehicles'] if v['id'] == x)["capacity"]))
+        # ------------------------------------------------------------------------------------------- #
+    else:
+        # --------------------- Choose vehicles based on vehicles requested + capacity--------------- #
+        f_r["capacities"] = vehicle_capacities
+        f_r['vehicles'] = len(request["vehicles"])
+        # ------------------------------------------------------------------------------------------- #
 
-    # Calculating vehicles used based on total volume of parcels
-    vehicle_capacities = [5, 10, 15]
-    vehicles = [
-        request['available_vehicles']['motorcycles'],
-        request['available_vehicles']['cars'],
-        request['available_vehicles']['vans']
-    ]
-    vehicles_used = [0, 0, 0]
-
-    total_volume = 0
-    for obj in request['parcels']:
-        total_volume += obj['volume']
-    total_volume_left = total_volume
-
-    for idx, vehicle_quantity in enumerate(vehicles):
-        if total_volume_left > 0:
-            if vehicle_quantity > 0:
-                for i in range(1, vehicle_quantity + 1):
-                    if i * vehicle_capacities[idx] >= total_volume_left:
-                        vehicles_used[idx] = i
-                        break
-                    if vehicles_used[idx] == 0:
-                        vehicles_used[idx] = vehicle_quantity
-        total_volume_left = max(total_volume_left - vehicles_used[idx] * vehicle_capacities[idx], 0)
-
-    # Defining vehicle capacities
-    capacities = []
-    for idx, vehicles in enumerate(vehicles_used):
-        for i in range(vehicles):
-            capacities.append(vehicle_capacities[idx])
-    f_r['capacities'] = capacities
-
-    # Additional data
-    f_r['n_deliveries'] = len(request['parcels'])
-    f_r['vehicles'] = sum(vehicles_used)
-    f_r['search_strategy'] = request['search_strategy']
-    f_r['cost_matrix'] = request['cost_matrix']
-
-    if f_r['n_deliveries'] <= 25:  # 10 seconds
-        f_r['time'] = 3   # 3
-    elif f_r['n_deliveries'] <= 50:  # 15 seconds
-        f_r['time'] = 3
-    elif f_r['n_deliveries'] <= 75:  # 20 seconds
-        f_r['time'] = 4
-    elif f_r['n_deliveries'] <= 100:  # 25 seconds
-        f_r['time'] = 6
-    elif f_r['n_deliveries'] <= 150:  # 27 seconds
-        f_r['time'] = 9
-
-    '''
-    If end locations exist and ar different from "depot", we need to duplicate end location nodes
-    with their corresponding demands and delete them later on. 
-    '''
+    f_r['time'] = 2 if f_r['n_deliveries'] <= 25 else (3 if f_r['n_deliveries'] <= 50 else (
+        6 if f_r['n_deliveries'] <= 75 else (12 if f_r['n_deliveries'] <= 150 else None)))
 
     # Fetch indexes for dummy nodes to ignore later on
     f_r['indexes_to_ignore'] = isf.indexes_to_kill(request)
 
     # Corresponding demands for dummy nodes
-    end_location_demands = []
-    if 'end_locations' in request.keys():
-        if 'depot' in request['end_locations']:
-            special_case = not all(end_location == 'depot' for end_location in request['end_locations'])
-        else:
-            special_case = False
+    end_location_demands = isf.get_end_location_demands(request)
 
-        if not special_case:
-            if "end_locations" in request.keys():
-                if request["end_locations"]:
-                    for ID in request['end_locations']:
-                        if ID != 'depot':
-                            for idx, obj in enumerate(request['parcels']):
-                                if ID == obj['id']:
-                                    end_location_demands.append(obj['volume'])
-        else:
-            if "end_locations" in request.keys():
-                if request["end_locations"]:
-                    for end_location in request['end_locations']:
-                        if end_location != 'depot':
-                            for idx, obj in enumerate(request['parcels']):
-                                if end_location == obj['id']:
-                                    end_location_demands.append(obj['volume'])
-                        else:
-                            end_location_demands.append(0)
-
-    # Defining location demands
-    demands = []
-    for obj in request['parcels']:
-        demands.append(obj['volume'])
+    # Adding dummy nodes to demands
     demands = [0] + demands + end_location_demands + [0]
     f_r['demands'] = demands
 
     # Defining start and end locations for vehicles
     f_r['starts'] = [0] * f_r['vehicles']
-    f_r['ends'] = []
-    if request['end_locations']:
-        for end_location in request['end_locations']:
-            if end_location == 'depot':
-                f_r['ends'].append(0)
-            else:
-                idx = f_r['parcel_id'].index(end_location) + 1
-                f_r['ends'].append(idx)
-        while len(f_r['ends']) < f_r['vehicles']:
-            f_r['ends'].append(len(f_r['lat']))
-    else:
-        f_r['ends'] = [len(f_r['lat'])] * f_r['vehicles']
+    f_r['ends'] = [f_r['parcel_id'].index(end_location) + 1 if end_location != 'depot' else 0 for end_location in
+                   request.get("end_locations", [])]
+    f_r['ends'] += [len(f_r['lat'])] * (f_r['vehicles'] - len(f_r['ends']))
+
+    print(f_r["search_strategy"])
 
     return f_r
 
@@ -188,22 +103,35 @@ def solve_md(f_req):
     C = np.array(C) / 100
     C = C.astype(int)
 
-    data = {
-        "demands": f_req['demands'],
-        "vehicle_capacities": f_req['capacities'],
-        "num_vehicles": f_req['vehicles'],
-        "depot": 0
-    }
-
     # Create the routing index manager.
-    manager = pywrapcp.RoutingIndexManager(len(C),
-                                           f_req['vehicles'],
-                                           f_req['starts'],
-                                           f_req['ends'],
-                                           )
+    manager = pywrapcp.RoutingIndexManager(
+        len(C),
+        f_req['vehicles'],
+        f_req['starts'],
+        f_req['ends'],
+    )
 
     # Create Routing Model.
     routing = pywrapcp.RoutingModel(manager)
+
+    # Use max vehicles
+    if f_req["routeNumber"] == "max":
+        # Add empty route constraint
+        for vehicle_id in range(manager.GetNumberOfVehicles()):
+            routing.SetVehicleUsedWhenEmpty(True, vehicle_id)
+
+        count_dimension_name = 'count'
+        routing.AddConstantDimension(
+            1,  # increment by one every time
+            f_req["n_deliveries"] + 2,  # make sure the return to depot node can be counted
+            True,  # set count to zero
+            count_dimension_name)
+        count_dimension = routing.GetDimensionOrDie(count_dimension_name)
+        count_dimension.SetGlobalSpanCostCoefficient(100)
+
+        for veh in range(0, f_req["vehicles"]):
+            index_end = routing.End(veh)
+            count_dimension.SetCumulVarSoftLowerBound(index_end, 2, 100000)
 
     # Create and register a transit callback.
     def distance_callback(from_index, to_index):
@@ -223,8 +151,6 @@ def solve_md(f_req):
         """Returns the demand of the node."""
         # Convert from routing variable Index to demand NodeIndex.
         from_node = manager.IndexToNode(from_index)
-        # print(f_req['demands'][from_node], from_node)
-        # print('-------------------------------------')
         return f_req['demands'][from_node]
 
     demand_callback_index = routing.RegisterUnaryTransitCallback(
@@ -242,7 +168,7 @@ def solve_md(f_req):
         transit_callback_index,
         0,  # no slack
         100000,  # vehicle maximum travel distance
-        True,  # start cumulative to zero
+        False,  # start cumulative to zero
         dimension_name)
     distance_dimension = routing.GetDimensionOrDie(dimension_name)
     distance_dimension.SetGlobalSpanCostCoefficient(100)
@@ -264,21 +190,16 @@ def solve_md(f_req):
         # Calculate route distances and total distance
         total_distance = isf.get_total_distance(f_req, rts)
 
-        for idx2, sub_rt in enumerate(rts):
-            if sub_rt[0] == 0 and sub_rt[1] == 0:
-                total_distance = total_distance * 10
+    except (AttributeError, TypeError, ValueError, NameError):
+        return None, None
 
-        return rts, total_distance
-    except AttributeError:
-        return None, None
-    except TypeError:
-        return None, None
+    return rts, total_distance
 
 
 # get main depot response
 def get_md_response(f_req, sol, distance):
     if sol is not None:
-        rsp = {'status': 200, 'routes': [], 'total_distance': distance, 'search_strategy': f_req['search_strategy']}
+        rsp = {'status': 200, 'body': [], 'total_distance': distance, 'search_strategy': f_req['search_strategy']}
         for route_number, route in enumerate(sol):
             rt = []
             for idx, node in enumerate(route):
@@ -300,12 +221,12 @@ def get_md_response(f_req, sol, distance):
                     drops.append(f_req['parcel_id'][node - 1])
                 node_info = {'address': address, 'contact': contact, 'picks': picks, 'drops': drops}
                 rt.append(node_info)
-            rsp['routes'].append(rt)
+            route_dict = {
+                "vehicle": f_req["vehicle_ids"][route_number],
+                "route": rt
+            }
+            if len(rt) > 1:
+                rsp['body'].append(route_dict)
     else:
-        rsp = {'status': 204}
+        rsp = {'status': 204, 'body': [], 'total_distance': 1000000000, 'search_strategy': f_req['search_strategy']}
     return rsp
-
-
-
-
-

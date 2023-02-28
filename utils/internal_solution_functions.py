@@ -1,6 +1,7 @@
 from ortools.constraint_solver import pywrapcp
 import numpy as np
 from ortools.constraint_solver import routing_enums_pb2
+import copy
 
 
 # Generate route arrays
@@ -21,6 +22,8 @@ def get_route_arrays(f_req, routing, solution, manager):
                 rts[vehicle_id] = np.delete(rts[vehicle_id], np.where(rts[vehicle_id] == f_req['n_deliveries'] + 1))
             else:
                 rts[vehicle_id] = np.delete(rts[vehicle_id], np.where(rts[vehicle_id] == 0))
+
+        rts = [rt for rt in rts if len(rt) > 1 or rt[0] != 0]
 
         # ------------------------------ Multi Depot Requests Only ------------------------------ #
         if "lat_lng" in f_req.keys():
@@ -71,45 +74,23 @@ def print_solution(data, manager, routing, solution):
 
 
 def choose_search_parameters(time, search_strategy):
-
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.log_search = False
+    search_strategy_mapping = {
+        1: routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC,
+        2: routing_enums_pb2.FirstSolutionStrategy.PATH_MOST_CONSTRAINED_ARC,
+        3: routing_enums_pb2.FirstSolutionStrategy.FIRST_UNBOUND_MIN_VALUE,
+        4: routing_enums_pb2.FirstSolutionStrategy.LOCAL_CHEAPEST_ARC,
+        5: routing_enums_pb2.FirstSolutionStrategy.CHRISTOFIDES,
+        6: routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION,
+        7: routing_enums_pb2.FirstSolutionStrategy.LOCAL_CHEAPEST_INSERTION,
+        8: routing_enums_pb2.FirstSolutionStrategy.SAVINGS,
+        9: routing_enums_pb2.FirstSolutionStrategy.BEST_INSERTION,
+        10: routing_enums_pb2.FirstSolutionStrategy.ALL_UNPERFORMED,
+        11: routing_enums_pb2.FirstSolutionStrategy.GLOBAL_CHEAPEST_ARC
+    }
 
-    if search_strategy == 1:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
-    elif search_strategy == 2:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_MOST_CONSTRAINED_ARC)
-    elif search_strategy == 3:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.FIRST_UNBOUND_MIN_VALUE)
-    elif search_strategy == 4:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.LOCAL_CHEAPEST_ARC)
-    elif search_strategy == 5:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.CHRISTOFIDES)
-    elif search_strategy == 6:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION)
-    elif search_strategy == 7:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.LOCAL_CHEAPEST_INSERTION)
-    elif search_strategy == 8:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.SAVINGS)
-    elif search_strategy == 9:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.BEST_INSERTION)
-    elif search_strategy == 10:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.ALL_UNPERFORMED)
-
-    # MIGHT RUN FOREVER
-    elif search_strategy == 11:
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.GLOBAL_CHEAPEST_ARC)
+    search_parameters.first_solution_strategy = search_strategy_mapping.get(search_strategy)
 
     if time == 0:  # If condition is satisfied, return optimal solution as fast as possible
         search_parameters.local_search_metaheuristic = (
@@ -226,4 +207,70 @@ def get_multi_depot_location_array(request):
     lat_lng = np.concatenate((lat_lng_d, lat_lng))
 
     return lat_lng
+
+
+def find_minimum_vehicles(vehicleMaxVolume, total_volume):
+    vehicleMaxVolume.sort(reverse=True)
+    minimum_vehicles = []
+    remaining_volume = total_volume
+    for vehicle_volume in vehicleMaxVolume:
+        if remaining_volume <= 0:
+            break
+        minimum_vehicles.append(vehicle_volume)
+        remaining_volume -= vehicle_volume
+    return minimum_vehicles
+
+
+def distribute_parcels(vehicles, parcels):
+    parcel_distribution = [parcels // vehicles for _ in range(vehicles)]
+    for i in range(parcels % vehicles):
+        parcel_distribution[i] += 1
+    return parcel_distribution
+
+
+def distribute_parcels2(vehicles, parcels):
+    vehicles_sorted = sorted(vehicles)
+    parcels_sorted = sorted(parcels, reverse=True)
+    parcel_distribution = [0] * len(vehicles)
+    parcels_sorted_copy = copy.deepcopy(parcels_sorted)
+
+    for parcel in parcels_sorted:
+        for i, vehicle in enumerate(vehicles_sorted):
+            if vehicle >= parcel and parcel_distribution[vehicles.index(vehicle)] + parcel <= vehicle:
+                parcel_distribution[vehicles.index(vehicle)] += parcel
+                parcels_sorted_copy.pop(parcels_sorted_copy.index(parcel))
+                break
+
+    return parcel_distribution
+
+
+def get_end_location_demands(request):
+    """
+       If end locations exist and are different from "depot", we need to duplicate end location nodes
+       with their corresponding demands and delete them later on.
+    """
+
+    end_location_demands = []
+    if 'end_locations' in request.keys():
+        if 'depot' in request['end_locations']:
+            special_case = not all(end_location == 'depot' for end_location in request['end_locations'])
+        else:
+            special_case = False
+        if not special_case:
+            if request["end_locations"]:
+                for ID in request['end_locations']:
+                    if ID != 'depot':
+                        for idx, obj in enumerate(request['parcels']):
+                            if ID == obj['id']:
+                                end_location_demands.append(obj['volume'])
+        else:
+            if request["end_locations"]:
+                for end_location in request['end_locations']:
+                    if end_location != 'depot':
+                        for idx, obj in enumerate(request['parcels']):
+                            if end_location == obj['id']:
+                                end_location_demands.append(obj['volume'])
+                        else:
+                            end_location_demands.append(0)
+    return end_location_demands
 

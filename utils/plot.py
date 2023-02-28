@@ -130,20 +130,64 @@ def response(rsp):
     return plt
 
 
+# get response plot
+def md_response(rsp):
+    plt.figure(1)
+    sns.set(style="dark")
+
+    # Plotting client location
+    client_lat = float(rsp['body'][0]["route"][0]['address']['location']['coordinates'][0])
+    client_lng = float(rsp['body'][0]["route"][0]['address']['location']['coordinates'][1])
+    plt.scatter(x=client_lng, y=client_lat, c='k', marker='^', s=200)
+    for data in rsp['body']:
+        lat = [float(i['address']['location']['coordinates'][0]) for i in data["route"] if 'address' in i]
+        lng = [float(i['address']['location']['coordinates'][1]) for i in data["route"] if 'address' in i]
+        ids = []
+        volumes = []
+
+        for idx, location in enumerate(data["route"]):
+            if idx > 0:
+                if 'drops' in location.keys() and location['drops']:
+                    ids.append(location['drops'][0])
+                else:
+                    ids.append("")
+
+        plt.scatter(np.array(lng[1:]), np.array(lat[1:]))
+        plt.plot(np.array(lng), np.array(lat))
+
+        for idx, lt in enumerate(lat):
+            if 0 < idx:
+                plt.annotate(ids[idx - 1], xy=(lng[idx], lat[idx] + 0.00001))
+
+        lat0 = np.array(lat[0:-1])
+        lat1 = np.array(lat[1:])
+        lng0 = np.array(lng[0:-1])
+        lng1 = np.array(lng[1:])
+        lat_pos = (lat0 + lat1) / 2
+        lng_pos = (lng0 + lng1) / 2
+        lat_dir = lat1 - lat0
+        lng_dir = lng1 - lng0
+        for LAT, LNG, dLAT, dLNG in zip(lat_pos, lng_pos, lat_dir, lng_dir):
+            plt.annotate("", xytext=(LNG, LAT), xy=(LNG + 0.001 * dLNG, LAT + 0.001 * dLAT),
+                         arrowprops=dict(arrowstyle="->", color='k'), size=8)
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
+    return plt
+
+
 # get cluster plot
-def clusters(f_req, req_clusters):
+def clusters(f_req, clusterArray):
     plt.figure(2)
     sns.set(style="dark")
     sns.scatterplot(
-        x=f_req['lng'][1:],
-        y=f_req['lat'][1:],
-        hue=req_clusters,
+        x=f_req['lng'],
+        y=f_req['lat'],
+        hue=clusterArray,
         palette="deep",
-        style=req_clusters,
+        style=clusterArray,
+        s=30,
     )
-
-    # Plotting client location
-    plt.scatter(x=f_req['lng'][0], y=f_req['lat'][0], c='k', marker='^', s=200)
     return plt
+
 
 

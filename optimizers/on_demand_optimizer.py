@@ -2,7 +2,7 @@ from utils import on_demand as od
 
 """ optional """
 from utils import generate
-from utils import plot
+# from utils import plot
 import pprint as pp
 from data import request_examples as re
 
@@ -27,6 +27,6 @@ if __name__ == "__main__":
 
     """ optional """
     pp.pprint(response)
-    plt = plot.response(response)
-    plt.show()
+    # plt = plot.response(response)
+    # plt.show()
 

@@ -1,9 +1,10 @@
 from utils import main_depot as md
-from utils import plot
+
 import pprint as pp
 from data import request_examples as re
 
 # For testing
+from utils import plot
 from utils import matrix
 from utils import generate
 
@@ -13,6 +14,8 @@ def get_main_depot_response(req):
         f_request = md.format_md(req)
         solution, total_distance = md.solve_md(f_request)
         rsp = md.get_md_response(f_request, solution, total_distance)
+        plt = plot.solution(f_request, solution)
+        plt.show()
     else:
         rsp = md.verify_md(req)
     return rsp
@@ -20,12 +23,11 @@ def get_main_depot_response(req):
 
 if __name__ == "__main__":
     # define initial request
-    request = re.req6
-
+    request = re.req10
     response = get_main_depot_response(request)
 
     """ optional """
-    pp.pprint(response)
+    for obj in response["body"]:
+        print(obj['vehicle'])
     if response['status'] == 200:
-        plt = plot.response(response)
-        plt.show()
+        pp.pprint(response)

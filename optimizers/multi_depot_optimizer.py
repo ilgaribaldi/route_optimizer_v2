@@ -2,7 +2,7 @@ from utils import multi_depot as mud
 from data import request_examples as re
 import pprint as pp
 from utils import matrix
-from utils import plot
+# from utils import plot
 
 
 def get_multi_depot_response(req):
@@ -11,7 +11,7 @@ def get_multi_depot_response(req):
     rsp = mud.get_mud_response(f_request, solution, total_distance)
 
     # optional
-    plot.mud_solution(f_request, solution)
+    # plot.mud_solution(f_request, solution)
     return rsp
 
 
