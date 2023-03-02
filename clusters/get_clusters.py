@@ -1,4 +1,4 @@
-import clusters_alternative as cl
+import clusters as cl
 # import clusters as cl
 from utils import plot
 from utils import generate
@@ -24,4 +24,6 @@ if __name__ == '__main__':
 
     for obj in response["clusters"]:
         print(len(obj))
+
+    pp.pprint(response)
 

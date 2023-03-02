@@ -26,6 +26,7 @@ def get_route_arrays(f_req, routing, solution, manager):
         rts = [rt for rt in rts if len(rt) > 1 or rt[0] != 0]
 
         # ------------------------------ Multi Depot Requests Only ------------------------------ #
+        '''
         if "lat_lng" in f_req.keys():
             # Rewriting solution with "real nodes" (client nodes will be represented as negative)
             client_idx = 0
@@ -41,6 +42,7 @@ def get_route_arrays(f_req, routing, solution, manager):
                 # Deleting cloned nodes
                 indexes = np.unique(rts[vehicle_id], return_index=True)[1]
                 rts[vehicle_id] = np.array([rts[vehicle_id][idx] for idx in sorted(indexes)])
+        '''
     return rts
 
 

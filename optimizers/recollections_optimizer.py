@@ -14,8 +14,8 @@ def get_recollections_response(req):
         rsp = rec.get_rec_response(f_request, solution)
 
         """ optional """
-        # plt = plot.solution(f_request, solution)
-        # plt.show()
+        plt = plot.solution(f_request, solution)
+        plt.show()
 
     else:
         rsp = rec.verify_rec(request)
