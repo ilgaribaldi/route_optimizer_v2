@@ -177,7 +177,7 @@ def md_response(rsp):
 
 # get cluster plot
 def clusters(f_req, clusterArray):
-    plt.figure(2)
+    plt.figure(1)
     sns.set(style="dark")
     sns.scatterplot(
         x=f_req['lng'],
@@ -185,7 +185,7 @@ def clusters(f_req, clusterArray):
         hue=clusterArray,
         palette="deep",
         style=clusterArray,
-        s=30,
+        s=50,
     )
     return plt
 

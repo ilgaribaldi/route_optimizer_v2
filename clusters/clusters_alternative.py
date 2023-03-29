@@ -1,8 +1,23 @@
 from sklearn.cluster import MiniBatchKMeans
-from scipy.spatial.distance import cdist
 import numpy as np
-from utils import generate
-import random
+from sklearn.cluster import KMeans
+from k_means_constrained import KMeansConstrained
+
+
+def custom_predict(clf, X, cluster_sizes, cluster_sum_distances):
+    max_cluster_size = 100
+    distances = clf.transform(X)
+    avg_distances = np.divide(
+        cluster_sum_distances,
+        cluster_sizes,
+        out=np.zeros_like(cluster_sum_distances),
+        where=cluster_sizes != 0
+    )
+    distances[:, cluster_sizes >= max_cluster_size] = np.inf
+    penalty = 0.05
+    distances += penalty * avg_distances
+    cluster = np.argmin(distances, axis=1)[0]
+    return cluster, distances[0, cluster]
 
 
 def format_cluster_request(request):
@@ -18,13 +33,21 @@ def format_cluster_request(request):
 
 
 def get_clusters(f_request):
-    # Define the maximum cluster size
-    max_cluster_size = 100
+    data = list(zip(f_request["lat"], f_request["lng"]))
+    clf = KMeansConstrained(
+        n_clusters=f_request["clusterAmount"],
+        size_min=None,
+        size_max=100,
+        random_state=0,
+        n_jobs=12
+    )
+    cls = clf.fit_predict(data)
+    return cls
 
-    # Convert data to numpy array
+
+def get_clusters_with_mini_batch(f_request):
     data = np.array(list(zip(f_request["lat"], f_request["lng"])))
 
-    # Initialize the MiniBatchKMeans algorithm
     clf = MiniBatchKMeans(
         n_clusters=f_request["clusterAmount"],
         batch_size=1024,
@@ -35,21 +58,49 @@ def get_clusters(f_request):
 
     clf.fit(data)
 
-    # Define a custom predict function that enforces the maximum cluster size constraint
-    def custom_predict(clf, X):
-        distances = clf.fit_transform(X)
-        sizes = np.bincount(clf.labels_, minlength=clf.n_clusters)
-        penalty = np.where(sizes >= max_cluster_size, 100, 0)
-        scores = distances + penalty
-        print('-----------------')
-        print(np.argmin(scores, axis=1))
-        return np.argmin(scores, axis=1)
+    cls = np.zeros(data.shape[0], dtype=np.int32)
+    cluster_sizes = np.zeros(f_request["clusterAmount"], dtype=np.int32)
+    cluster_sum_distances = np.zeros(f_request["clusterAmount"], dtype=np.float64)
 
-    # Override the predict method with the custom implementation
-    clf.predict = lambda X: custom_predict(clf, X)
+    for i, point in enumerate(data):
+        cluster, distance = custom_predict(
+            clf,
+            point[np.newaxis, :],
+            cluster_sizes,
+            cluster_sum_distances
+        )
+        cls[i] = cluster
+        cluster_sizes[cluster] += 1
+        cluster_sum_distances[cluster] += distance
 
-    # Fit the model and predict the clusters
-    cls = clf.fit_predict(data)
+    return cls
+
+
+def get_clusters_with_k_means(f_request):
+    data = np.array(list(zip(f_request["lat"], f_request["lng"])))
+
+    clf = KMeans(
+        n_clusters=f_request["clusterAmount"],
+        random_state=3,
+        max_iter=10000,
+        n_init=500,  # Increase the number of initializations to improve convergence
+    )
+
+    clf.fit(data)
+    cls = np.zeros(data.shape[0], dtype=np.int32)
+    cluster_sizes = np.zeros(f_request["clusterAmount"], dtype=np.int32)
+    cluster_sum_distances = np.zeros(f_request["clusterAmount"], dtype=np.float64)
+
+    for i, point in enumerate(data):
+        cluster, distance = custom_predict(
+            clf,
+            point[np.newaxis, :],
+            cluster_sizes,
+            cluster_sum_distances
+        )
+        cls[i] = cluster
+        cluster_sizes[cluster] += 1
+        cluster_sum_distances[cluster] += distance
 
     return cls
 

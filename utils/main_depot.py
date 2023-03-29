@@ -2,6 +2,7 @@ import numpy as np
 from ortools.constraint_solver import pywrapcp
 import pprint as pp
 from utils import internal_solution_functions as isf
+import math
 
 
 # main depot request verification
@@ -52,28 +53,16 @@ def format_md(request):
         'vehicle_ids': [v['id'] for v in request["vehicles"]]
     }
 
-    print(f_r['vehicle_ids'])
-
     demands = [obj['volume'] for obj in request['parcels']]
     vehicle_capacities = [v['capacity'] for v in request["vehicles"]]
-    if request["routeNumber"] == "min":
-        # --------------------- Choose vehicles based on capacity functionality (min) --------------- #
-        vehicles_to_use = isf.find_minimum_vehicles(vehicle_capacities, sum(demands))
-        f_r["capacities"] = vehicles_to_use
-        f_r['vehicles'] = len(vehicles_to_use)
-        f_r['vehicle_ids'] = [vehicle["id"] for vehicle in request['vehicles'] if
-                              vehicle["capacity"] in f_r['capacities']]
-        f_r['vehicle_ids'].sort(
-            key=lambda x: f_r['capacities'].index(next(v for v in request['vehicles'] if v['id'] == x)["capacity"]))
-        # ------------------------------------------------------------------------------------------- #
-    else:
-        # --------------------- Choose vehicles based on vehicles requested + capacity--------------- #
-        f_r["capacities"] = vehicle_capacities
-        f_r['vehicles'] = len(request["vehicles"])
-        # ------------------------------------------------------------------------------------------- #
+
+    # --------------------- Choose vehicles based on vehicles requested + capacity--------------- #
+    f_r["capacities"] = vehicle_capacities
+    f_r['vehicles'] = len(request["vehicles"])
+    # ------------------------------------------------------------------------------------------- #
 
     f_r['time'] = 2 if f_r['n_deliveries'] <= 25 else (3 if f_r['n_deliveries'] <= 50 else (
-        6 if f_r['n_deliveries'] <= 75 else (12 if f_r['n_deliveries'] <= 150 else None)))
+        6 if f_r['n_deliveries'] <= 75 else (15 if f_r['n_deliveries'] <= 150 else None)))
 
     # Fetch indexes for dummy nodes to ignore later on
     f_r['indexes_to_ignore'] = isf.indexes_to_kill(request)
@@ -91,7 +80,8 @@ def format_md(request):
                    request.get("end_locations", [])]
     f_r['ends'] += [len(f_r['lat'])] * (f_r['vehicles'] - len(f_r['ends']))
 
-    print(f_r["search_strategy"])
+    print("number of vehicles:")
+    print(f_r['vehicles'])
 
     return f_r
 
@@ -100,8 +90,10 @@ def format_md(request):
 def solve_md(f_req):
     # Format cost matrix
     C = f_req['cost_matrix']
-    C = np.array(C) / 100
+    C = np.array(C) / 10
     C = C.astype(int)
+
+    data = {'distance_matrix': C, 'num_vehicles': f_req['vehicles'], 'depot': 0}
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(
@@ -149,7 +141,7 @@ def solve_md(f_req):
     # Add Capacity constraint.
     def demand_callback(from_index):
         """Returns the demand of the node."""
-        # Convert from routing variable Index to demand NodeIndex.
+        # Convert from routing variable Index to demands NodeIndex.
         from_node = manager.IndexToNode(from_index)
         return f_req['demands'][from_node]
 
@@ -159,19 +151,42 @@ def solve_md(f_req):
         demand_callback_index,
         0,  # null capacity slack
         f_req['capacities'],  # vehicle maximum capacities
-        True,  # start cumulative to zero
+        True,  # start cumul to zero
         'Capacity')
 
     # Add Distance constraint.
+    distance_limit = 500 if f_req['routeNumber'] == "min" else 450
     dimension_name = 'Distance'
     routing.AddDimension(
         transit_callback_index,
         0,  # no slack
-        100000,  # vehicle maximum travel distance
+        distance_limit,  # vehicle maximum travel distance
         False,  # start cumulative to zero
         dimension_name)
     distance_dimension = routing.GetDimensionOrDie(dimension_name)
     distance_dimension.SetGlobalSpanCostCoefficient(100)
+
+    def print_solution(data, manager, routing, solution):
+        """Prints solution on console."""
+        print(f'Objective: {solution.ObjectiveValue()}')
+        max_route_distance = 0
+        for vehicle_id in range(data['num_vehicles']):
+            index = routing.Start(vehicle_id)
+            plan_output = 'Route for vehicle {}:\n'.format(vehicle_id)
+            route_distance = 0
+            while not routing.IsEnd(index):
+                plan_output += ' {} -> '.format(manager.IndexToNode(index))
+                previous_index = index
+                index = solution.Value(routing.NextVar(index))
+                route_distance += routing.GetArcCostForVehicle(
+                    previous_index, index, vehicle_id)
+            plan_output += '{}\n'.format(manager.IndexToNode(index))
+            plan_output += 'Distance of the route: {}m\n'.format(route_distance)
+            print(plan_output)
+            max_route_distance = max(route_distance, max_route_distance)
+        print('Maximum of the route distances: {}m'.format(max_route_distance))
+
+
 
     # Setting first solution heuristic.
     try:
@@ -189,6 +204,8 @@ def solve_md(f_req):
 
         # Calculate route distances and total distance
         total_distance = isf.get_total_distance(f_req, rts)
+
+        print_solution(data, manager, routing, sol)
 
     except (AttributeError, TypeError, ValueError, NameError):
         return None, None

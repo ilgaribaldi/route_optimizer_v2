@@ -12,10 +12,10 @@ def verify_rec(req):
     rsp = 1
 
     if req['method'] != 'google' and req['method'] != 'billions' and req['method'] != "haversine":
-        rsp = {'status': "INVALID REQUEST: invalid API"}
+        rsp = {'status': 400, 'body': []}
 
     if req['method'] == 'google' and n_locations > 25:
-        rsp = {'status': "INVALID REQUEST: too many packages for google API, use billions API instead"}
+        rsp = {'status': 400, 'body': []}
 
     return rsp
 
@@ -55,8 +55,8 @@ def format_rec(request):
 
     # Defining location demands
     f_r['demands'] = [0] + [1] * f_r['n_locations'] + [0]
-    f_r['vehicles'] = request['vehicles']
-    print(f_r['vehicles'])
+    f_r['vehicles'] = len(request['vehicles'])
+    f_r['vehicle_ids'] = [v['id'] for v in request["vehicles"]]
 
     return f_r
 
@@ -132,6 +132,23 @@ def solve_rec(f_req):
         True,  # start cumulative to zero
         'Capacity')
 
+    # Add empty route constraint
+    for vehicle_id in range(manager.GetNumberOfVehicles()):
+        routing.SetVehicleUsedWhenEmpty(True, vehicle_id)
+
+    count_dimension_name = 'count'
+    routing.AddConstantDimension(
+        1,  # increment by one every time
+        len(f_req['lat']) + 2,  # make sure the return to depot node can be counted
+        True,  # set count to zero
+        count_dimension_name)
+    count_dimension = routing.GetDimensionOrDie(count_dimension_name)
+    count_dimension.SetGlobalSpanCostCoefficient(100)
+
+    for veh in range(0, vehicles):
+        index_end = routing.End(veh)
+        count_dimension.SetCumulVarSoftLowerBound(index_end, 2, 100000)
+
     # set up routes & times lists to contain data for each search-strategy
     routes = []
     times = []
@@ -180,7 +197,6 @@ def solve_rec(f_req):
     index = times.index(min_value)
     final_routes = routes[index]
     final_times = rt_times[index]
-    print(final_times)
 
     if final_times:
         return final_routes
@@ -191,7 +207,7 @@ def solve_rec(f_req):
 # get recollections response
 def get_rec_response(f_req, sol):
     if sol is not None:
-        rsp = {'status': 200, 'routes': []}  # Creating response dictionary
+        rsp = {'status': 200, 'body': []}  # Creating response dictionary
         for route_number, route in enumerate(sol):
             rt = []
             if len(route) > 1:
@@ -216,10 +232,15 @@ def get_rec_response(f_req, sol):
                                  'contact': contact,
                                  'picks': picks,
                                  'drops': drops,
-                                 'time until stop': f'{time} min'}
+                                 'timeToStop': time}
 
                     rt.append(node_info)
-                rsp['routes'].append(rt)
+                route_dict = {
+                    "vehicle": f_req["vehicle_ids"][route_number],
+                    "route": rt
+                }
+                if len(rt) > 1:
+                    rsp['body'].append(route_dict)
     else:
-        rsp = {'status': "Error: No solution found for all routes under 30 minutes"}
+        rsp = {'status': 402, 'body': []}
     return rsp

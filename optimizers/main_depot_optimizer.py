@@ -23,11 +23,10 @@ def get_main_depot_response(req):
 
 if __name__ == "__main__":
     # define initial request
-    request = re.req10
+    request = re.req12
     response = get_main_depot_response(request)
 
     """ optional """
     for obj in response["body"]:
-        print(obj['vehicle'])
-    if response['status'] == 200:
-        pp.pprint(response)
+        print(len(obj['route']))
+

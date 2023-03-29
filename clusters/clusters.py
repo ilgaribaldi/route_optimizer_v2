@@ -1,4 +1,7 @@
 from k_means_constrained import KMeansConstrained
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 
 
 def format_cluster_request(request):
@@ -23,6 +26,89 @@ def get_clusters(f_request):
         n_jobs=12
     )
     cls = clf.fit_predict(data)
+    return cls
+
+
+def get_clusters_with_mini_batch(f_request):
+    # Define the maximum cluster size
+    max_cluster_size = 100
+
+    # Convert data to numpy array
+    data = np.array(list(zip(f_request["lat"], f_request["lng"])))
+
+    # Initialize the MiniBatchKMeans algorithm
+    clf = MiniBatchKMeans(
+        n_clusters=f_request["clusterAmount"],
+        batch_size=1024,
+        random_state=0,
+        max_iter=3000,
+        n_init="auto",
+    )
+
+    clf.fit(data)
+
+    # Define a custom predict function that enforces the maximum cluster size constraint
+    def custom_predict(clf, X, cluster_sizes):
+        # Calculate distances to the cluster centers
+        distances = clf.transform(X)
+        # Set the distances of clusters with sizes equal to or greater than the max size to infinity
+        distances[:, cluster_sizes >= max_cluster_size] = np.inf
+        # Return the cluster with the lowest distance
+        return np.argmin(distances, axis=1)
+
+    # Initialize an empty array to store the cluster labels
+    cls = np.zeros(data.shape[0], dtype=np.int32)
+
+    # Initialize an array to store the cluster sizes
+    cluster_sizes = np.zeros(f_request["clusterAmount"], dtype=np.int32)
+
+    # Iterate through each data point and predict the cluster
+    for i, point in enumerate(data):
+        cluster = custom_predict(clf, point[np.newaxis, :], cluster_sizes)
+        cls[i] = cluster
+        cluster_sizes[cluster] += 1
+
+    return cls
+
+
+def get_clusters_with_k_means(f_request):
+    # Define the maximum cluster size
+    max_cluster_size = 100
+
+    # Convert data to numpy array
+    data = np.array(list(zip(f_request["lat"], f_request["lng"])))
+
+    # Initialize the KMeans algorithm
+    clf = KMeans(
+        n_clusters=f_request["clusterAmount"],
+        random_state=3,
+        max_iter=100,
+        n_init=50000,  # Increase the number of initializations to improve convergence
+    )
+
+    clf.fit(data)
+
+    # Define a custom predict function that enforces the maximum cluster size constraint
+    def custom_predict(clf, X, cluster_sizes):
+        # Calculate distances to the cluster centers
+        distances = clf.transform(X)
+        # Set the distances of clusters with sizes equal to or greater than the max size to infinity
+        distances[:, cluster_sizes >= max_cluster_size] = np.inf
+        # Return the cluster with the lowest distance
+        return np.argmin(distances, axis=1)
+
+    # Initialize an empty array to store the cluster labels
+    cls = np.zeros(data.shape[0], dtype=np.int32)
+
+    # Initialize an array to store the cluster sizes
+    cluster_sizes = np.zeros(f_request["clusterAmount"], dtype=np.int32)
+
+    # Iterate through each data point and predict the cluster
+    for i, point in enumerate(data):
+        cluster = custom_predict(clf, point[np.newaxis, :], cluster_sizes)
+        cls[i] = cluster
+        cluster_sizes[cluster] += 1
+
     return cls
 
 
